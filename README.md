@@ -41,6 +41,12 @@ nhận diện (`vite` cho frontend, `express` cho backend). Backend kết nối
 PostgreSQL hoàn toàn qua **biến môi trường** (`PGHOST`, `PGPORT`, `PGUSER`,
 `PGPASSWORD`, `PGDATABASE`), không hardcode.
 
+Backend **tự tạo bảng `todos` + seed dữ liệu mẫu lúc khởi động** (idempotent
+— chạy lại không nhân đôi dữ liệu), nên hoạt động được cả khi trỏ vào
+managed PostgreSQL do platform deploy tự cấp (không chạy `db/init.sql` của
+repo này) lẫn Postgres chạy từ `db/Dockerfile` ở local. `db/` vẫn giữ để
+platform nhận diện đủ 3 phần và để chạy local qua docker-compose.
+
 ## Chạy local — cách nhanh nhất (docker compose)
 
 ```bash
@@ -56,14 +62,14 @@ query PostgreSQL và trả về danh sách Todo mẫu.
 
 ## Chạy local — thủ công (không Docker)
 
-Yêu cầu: Node.js >= 18, PostgreSQL đang chạy (local hoặc container).
+Yêu cầu: Node.js >= 18, PostgreSQL đang chạy (local hoặc container) và đã
+tạo sẵn database rỗng (bảng/dữ liệu mẫu backend tự tạo lúc start).
 
 ```bash
-# 1. Tạo database + import schema/dữ liệu mẫu
+# 1. Tạo database rỗng
 psql -h localhost -U postgres -c "CREATE DATABASE tododb;"
-psql -h localhost -U postgres -d tododb -f db/init.sql
 
-# 2. Chạy Backend (port 4000)
+# 2. Chạy Backend (port 4000) — tự tạo bảng + seed dữ liệu mẫu lúc khởi động
 cd backend
 cp .env.example .env   # chỉnh lại nếu thông tin DB khác
 npm install
@@ -79,6 +85,25 @@ npm run dev
 Mở http://localhost:3000. Nếu Backend deploy ở domain/port khác, đổi
 `VITE_API_BASE` trong `frontend/.env` rồi build lại (`npm run build`) — biến
 môi trường Vite được nhúng vào bundle lúc build, không đọc runtime.
+
+## Deploy lên platform (managed PostgreSQL)
+
+Khi deploy qua platform, database thường là managed add-on riêng (không
+phải container build từ `db/Dockerfile`). Lấy thông tin kết nối từ panel
+quản lý database của platform rồi cấu hình vào biến môi trường của service
+**backend**:
+
+| Biến môi trường backend | Lấy từ panel database |
+|---|---|
+| `PGHOST` | Host nội bộ |
+| `PGPORT` | Port nội bộ |
+| `PGDATABASE` | Database name |
+| `PGUSER` | Username |
+| `PGPASSWORD` | Password (bấm "Xoay mật khẩu" nếu không còn lưu giá trị gốc) |
+
+Không cần chạy `db/init.sql` thủ công — backend tự tạo bảng + seed khi
+khởi động (xem log container backend: `Database ready (schema + seed
+checked).`).
 
 ## Database
 
