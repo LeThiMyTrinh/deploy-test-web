@@ -11,6 +11,17 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  if (req.url === "/api/hello") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        message: "Xin chào từ Backend!",
+        time: new Date().toISOString(),
+      })
+    );
+    return;
+  }
+
   const urlPath = req.url === "/" ? "/index.html" : req.url;
   const filePath = path.join(__dirname, urlPath);
 
