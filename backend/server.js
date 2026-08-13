@@ -3,13 +3,18 @@ const { Pool } = require("pg");
 
 const PORT = process.env.PORT || 4000;
 
-const pool = new Pool({
-  host: process.env.PGHOST || "localhost",
-  port: process.env.PGPORT || 5432,
-  user: process.env.PGUSER || "postgres",
-  password: process.env.PGPASSWORD || "postgres",
-  database: process.env.PGDATABASE || "tododb",
-});
+// Ưu tiên connection string do platform tự cấp (POSTGRES_URL, kiểu
+// Vercel Postgres/Neon) — luôn đúng kể cả khi platform xoay mật khẩu.
+// Không có thì fallback về từng biến PG* rời (chạy local/docker-compose).
+const pool = process.env.POSTGRES_URL
+  ? new Pool({ connectionString: process.env.POSTGRES_URL })
+  : new Pool({
+      host: process.env.PGHOST || "localhost",
+      port: process.env.PGPORT || 5432,
+      user: process.env.PGUSER || "postgres",
+      password: process.env.PGPASSWORD || "postgres",
+      database: process.env.PGDATABASE || "tododb",
+    });
 
 const app = express();
 
