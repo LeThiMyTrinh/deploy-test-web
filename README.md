@@ -1,57 +1,94 @@
-# Deploy Test Website
+# Deploy Test — Full-stack (Frontend + Backend + PostgreSQL)
 
-Case full-stack đơn giản (HTML/CSS/JavaScript thuần + Node.js `http` thuần —
-không database, không framework, không dependency ngoài) dùng để kiểm thử
-luồng:
-
-```
-Frontend (script.js) → fetch("/api/hello") → Backend (server.js) → JSON → Frontend hiển thị
-```
-
-Đồng thời vẫn dùng được để test luồng deploy:
+Case full-stack tối giản dùng để kiểm thử luồng nhận diện & triển khai nhiều
+service từ 1 repository:
 
 ```
-GitHub Source → Framework Detection → Build → Nixpacks → Docker/Containerization → Deploy
+Frontend (browser) → GET /api/todos → Backend (Node.js API) → SQL → PostgreSQL
+                                                              ↓
+Frontend hiển thị danh sách  ←────────────── JSON ←──────────┘
 ```
 
 ## Cấu trúc source
 
 ```
 deploy-test-web/
-├── index.html      # Trang chính
-├── style.css       # Style
-├── script.js       # Gọi API /api/hello và hiển thị kết quả
-├── server.js       # Static file server + API endpoint GET /api/hello
-├── package.json    # npm scripts: start, build
+├── frontend/            # Project 1 — static HTML/CSS/JS thuần
+│   ├── index.html
+│   ├── style.css
+│   ├── script.js
+│   ├── server.js        # static file server, không dependency
+│   ├── package.json
+│   └── Dockerfile
+├── backend/              # Project 2 — API server
+│   ├── server.js         # Node.js http thuần + pg, đọc PostgreSQL
+│   ├── package.json      # dependency duy nhất: pg
+│   ├── .env.example
+│   └── Dockerfile
+├── db/                    # Project 3 — PostgreSQL
+│   ├── init.sql           # schema `todos` + dữ liệu mẫu
+│   └── Dockerfile         # postgres:16-alpine + init.sql
+├── docker-compose.yml      # chạy cả 3 service cùng lúc để test local
 └── README.md
 ```
 
-## Cách chạy local
+Frontend và Backend là **2 project Node.js độc lập** (mỗi thư mục có
+`package.json`/`Dockerfile` riêng), Backend kết nối PostgreSQL hoàn toàn qua
+**biến môi trường** (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`,
+`PGDATABASE`), không hardcode.
 
-Yêu cầu: Node.js >= 18 (không cần cài thêm package nào).
+## Chạy local — cách nhanh nhất (docker compose)
 
 ```bash
+docker compose up --build
+```
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:4000/api/todos
+- PostgreSQL: localhost:5432 (user/pass: `postgres`/`postgres`, db: `tododb`)
+
+Mở http://localhost:3000, bấm **Tải lại** để frontend gọi backend, backend
+query PostgreSQL và trả về danh sách Todo mẫu.
+
+## Chạy local — thủ công (không Docker)
+
+Yêu cầu: Node.js >= 18, PostgreSQL đang chạy (local hoặc container).
+
+```bash
+# 1. Tạo database + import schema/dữ liệu mẫu
+psql -h localhost -U postgres -c "CREATE DATABASE tododb;"
+psql -h localhost -U postgres -d tododb -f db/init.sql
+
+# 2. Chạy Backend (port 4000)
+cd backend
+cp .env.example .env   # chỉnh lại nếu thông tin DB khác
+npm install
 npm start
-# hoặc
-node server.js
+
+# 3. Chạy Frontend (port 3000), ở terminal khác
+cd frontend
+npm start
 ```
 
-Mặc định server chạy ở **port 3000**: http://localhost:3000
+Mở http://localhost:3000. Nếu Backend chạy ở domain/port khác, sửa
+`window.API_BASE` trong `frontend/index.html`.
 
-Có thể đổi port bằng biến môi trường `PORT`:
+## Database
 
-```bash
-PORT=8080 npm start
-```
+Bảng `todos` (`db/init.sql`):
 
-## Build
+| id | title                          | done |
+|----|--------------------------------|------|
+| 1  | Học Docker                     | true |
+| 2  | Deploy backend lên server B    | false|
+| 3  | Kết nối PostgreSQL             | false|
 
-Đây là site tĩnh nên không có build step thực sự — `npm run build` chỉ in
-thông báo xác nhận. Toàn bộ asset (`index.html`, `style.css`, `script.js`)
-đã sẵn sàng để serve trực tiếp.
+## API
 
-## Chức năng
+- `GET /api/todos` → `[{ "id": 1, "title": "...", "done": true }, ...]`
 
-- Hiển thị tiêu đề **Deploy Test Website** và mô tả ngắn.
-- Nhấn nút **Gọi API** → frontend gọi `GET /api/hello` → backend trả JSON
-  `{ message, time }` → frontend hiển thị kết quả kèm thời gian server.
+## Mục đích
+
+Repo này dùng để test hệ thống deploy có nhận diện đúng và triển khai được
+**2 project ứng dụng (Frontend, Backend) + 1 PostgreSQL database** từ cùng
+một repository hay không.
