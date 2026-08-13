@@ -1,4 +1,4 @@
-const http = require("http");
+const express = require("express");
 const { Pool } = require("pg");
 
 const PORT = process.env.PORT || 4000;
@@ -11,27 +11,24 @@ const pool = new Pool({
   database: process.env.PGDATABASE || "tododb",
 });
 
-const server = http.createServer(async (req, res) => {
+const app = express();
+
+app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-
-  if (req.url === "/api/todos" && req.method === "GET") {
-    try {
-      const result = await pool.query(
-        "SELECT id, title, done FROM todos ORDER BY id"
-      );
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result.rows));
-    } catch (err) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err.message }));
-    }
-    return;
-  }
-
-  res.writeHead(404, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ error: "Not Found" }));
+  next();
 });
 
-server.listen(PORT, () => {
+app.get("/api/todos", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, title, done FROM todos ORDER BY id"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => {
   console.log(`Backend API running at http://localhost:${PORT}`);
 });

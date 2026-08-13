@@ -4,38 +4,42 @@ Case full-stack tối giản dùng để kiểm thử luồng nhận diện & tr
 service từ 1 repository:
 
 ```
-Frontend (browser) → GET /api/todos → Backend (Node.js API) → SQL → PostgreSQL
-                                                              ↓
-Frontend hiển thị danh sách  ←────────────── JSON ←──────────┘
+Frontend (Vite) → GET /api/todos → Backend (Express) → SQL → PostgreSQL
+                                                       ↓
+Frontend hiển thị danh sách  ←──────── JSON ←──────────┘
 ```
 
 ## Cấu trúc source
 
 ```
 deploy-test-web/
-├── frontend/            # Project 1 — static HTML/CSS/JS thuần
+├── frontend/            # Project 1 — Vite (framework signature: vite)
 │   ├── index.html
-│   ├── style.css
-│   ├── script.js
-│   ├── server.js        # static file server, không dependency
-│   ├── package.json
-│   └── Dockerfile
-├── backend/              # Project 2 — API server
-│   ├── server.js         # Node.js http thuần + pg, đọc PostgreSQL
-│   ├── package.json      # dependency duy nhất: pg
+│   ├── src/
+│   │   ├── main.js       # gọi API, render danh sách
+│   │   └── style.css
+│   ├── serve.js          # static server phục vụ dist/ khi chạy production
+│   ├── vite.config.js
+│   ├── package.json      # devDependency duy nhất: vite
+│   ├── .env.example
+│   └── Dockerfile         # multi-stage: build (vite) → serve (node thuần)
+├── backend/               # Project 2 — Express (framework signature: express)
+│   ├── server.js          # Express + pg, đọc PostgreSQL
+│   ├── package.json       # dependencies: express, pg
 │   ├── .env.example
 │   └── Dockerfile
-├── db/                    # Project 3 — PostgreSQL
-│   ├── init.sql           # schema `todos` + dữ liệu mẫu
-│   └── Dockerfile         # postgres:16-alpine + init.sql
-├── docker-compose.yml      # chạy cả 3 service cùng lúc để test local
+├── db/                     # Project 3 — PostgreSQL
+│   ├── init.sql            # schema `todos` + dữ liệu mẫu
+│   └── Dockerfile          # postgres:16-alpine + init.sql
+├── docker-compose.yml       # chạy cả 3 service cùng lúc để test local
 └── README.md
 ```
 
-Frontend và Backend là **2 project Node.js độc lập** (mỗi thư mục có
-`package.json`/`Dockerfile` riêng), Backend kết nối PostgreSQL hoàn toàn qua
-**biến môi trường** (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`,
-`PGDATABASE`), không hardcode.
+Frontend và Backend là **2 project Node.js độc lập** — mỗi thư mục có
+`package.json`/`Dockerfile` riêng, dùng đúng framework mà hệ thống deploy
+nhận diện (`vite` cho frontend, `express` cho backend). Backend kết nối
+PostgreSQL hoàn toàn qua **biến môi trường** (`PGHOST`, `PGPORT`, `PGUSER`,
+`PGPASSWORD`, `PGDATABASE`), không hardcode.
 
 ## Chạy local — cách nhanh nhất (docker compose)
 
@@ -65,13 +69,16 @@ cp .env.example .env   # chỉnh lại nếu thông tin DB khác
 npm install
 npm start
 
-# 3. Chạy Frontend (port 3000), ở terminal khác
+# 3. Chạy Frontend (Vite dev server, port 3000), ở terminal khác
 cd frontend
-npm start
+cp .env.example .env   # VITE_API_BASE — trỏ về URL Backend
+npm install
+npm run dev
 ```
 
-Mở http://localhost:3000. Nếu Backend chạy ở domain/port khác, sửa
-`window.API_BASE` trong `frontend/index.html`.
+Mở http://localhost:3000. Nếu Backend deploy ở domain/port khác, đổi
+`VITE_API_BASE` trong `frontend/.env` rồi build lại (`npm run build`) — biến
+môi trường Vite được nhúng vào bundle lúc build, không đọc runtime.
 
 ## Database
 
@@ -90,5 +97,5 @@ Bảng `todos` (`db/init.sql`):
 ## Mục đích
 
 Repo này dùng để test hệ thống deploy có nhận diện đúng và triển khai được
-**2 project ứng dụng (Frontend, Backend) + 1 PostgreSQL database** từ cùng
-một repository hay không.
+**2 project ứng dụng (Frontend Vite, Backend Express) + 1 PostgreSQL
+database** từ cùng một repository hay không.

@@ -1,12 +1,13 @@
 {
   "name": "deploy-test-backend",
   "version": "1.0.0",
-  "description": "Minimal Backend API (Node.js http thuần + pg) — đọc/ghi Todo list trong PostgreSQL",
+  "description": "Backend API (Express + pg) — đọc Todo list từ PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "express": "^4.19.2",
     "pg": "^8.11.5"
   },
   "engines": {

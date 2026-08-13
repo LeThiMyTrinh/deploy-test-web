@@ -3,27 +3,18 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = process.env.PORT || 3000;
+const DIST_DIR = path.join(__dirname, "dist");
 
 const MIME_TYPES = {
   ".html": "text/html",
   ".css": "text/css",
   ".js": "application/javascript",
+  ".svg": "image/svg+xml",
 };
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/api/hello") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        message: "Xin chào từ Backend!",
-        time: new Date().toISOString(),
-      })
-    );
-    return;
-  }
-
   const urlPath = req.url === "/" ? "/index.html" : req.url;
-  const filePath = path.join(__dirname, urlPath);
+  const filePath = path.join(DIST_DIR, urlPath);
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
@@ -32,11 +23,13 @@ const server = http.createServer((req, res) => {
       return;
     }
     const ext = path.extname(filePath);
-    res.writeHead(200, { "Content-Type": MIME_TYPES[ext] || "text/plain" });
+    res.writeHead(200, {
+      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+    });
     res.end(content);
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`Deploy Test Website running at http://localhost:${PORT}`);
+  console.log(`Frontend running at http://localhost:${PORT}`);
 });
