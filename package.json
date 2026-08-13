@@ -1,0 +1,14 @@
+{
+  "name": "deploy-test-web",
+  "version": "1.0.0",
+  "description": "Simple static HTML/CSS/JS website for testing build & deploy pipelines",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo 'No build step required — static HTML/CSS/JS'"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
